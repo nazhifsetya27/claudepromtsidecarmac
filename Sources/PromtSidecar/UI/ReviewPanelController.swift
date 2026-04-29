@@ -15,7 +15,8 @@ final class ReviewPanelController {
     }
 
     func show(result: ReviewResult, original: String) {
-        let view = ReviewView(result: result, original: original) { [weak self] text in
+        let halfScreen = (NSScreen.main?.visibleFrame.height ?? 1000) / 2
+        let view = ReviewView(result: result, original: original, maxHeight: halfScreen) { [weak self] text in
             self?.copy(text)
         }
         present(content: AnyView(view))
@@ -29,10 +30,17 @@ final class ReviewPanelController {
     private func present(content: AnyView) {
         let hosting = NSHostingController(rootView: content)
         if panel == nil {
-            let initialRect = NSRect(x: 0, y: 0, width: 480, height: 360)
+            let initialRect = NSRect(x: 0, y: 0, width: 480, height: 100)
             panel = ReviewPanel(contentRect: initialRect)
         }
         panel?.contentViewController = hosting
+        hosting.view.layoutSubtreeIfNeeded()
+
+        let fitting = hosting.view.fittingSize
+        if fitting.height > 0 {
+            panel?.setContentSize(NSSize(width: 480, height: fitting.height))
+        }
+
         positionTopRight()
         panel?.makeKeyAndOrderFront(nil)
         installClickAwayMonitor()
@@ -40,12 +48,11 @@ final class ReviewPanelController {
 
     private func positionTopRight() {
         guard let panel, let screen = NSScreen.main else { return }
-        let frame = panel.frame
         let visible = screen.visibleFrame
         let margin: CGFloat = 16
-        let x = visible.maxX - frame.width - margin
-        let y = visible.maxY - frame.height - margin
-        panel.setFrameOrigin(NSPoint(x: x, y: y))
+        let topLeftX = visible.maxX - panel.frame.width - margin
+        let topLeftY = visible.maxY - margin
+        panel.setFrameTopLeftPoint(NSPoint(x: topLeftX, y: topLeftY))
     }
 
     private func installClickAwayMonitor() {

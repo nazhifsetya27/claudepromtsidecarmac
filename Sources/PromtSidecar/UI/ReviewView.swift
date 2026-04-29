@@ -3,6 +3,7 @@ import SwiftUI
 struct ReviewView: View {
     let result: ReviewResult
     let original: String
+    let maxHeight: CGFloat
     let onCopy: (String) -> Void
 
     var body: some View {
@@ -25,7 +26,7 @@ struct ReviewView: View {
             .frame(maxWidth: .infinity, alignment: .topLeading)
         }
         .frame(width: 480)
-        .frame(minHeight: 100, maxHeight: 600)
+        .frame(minHeight: 80, maxHeight: maxHeight)
     }
 
     private func improvedPromptSection(_ text: String) -> some View {

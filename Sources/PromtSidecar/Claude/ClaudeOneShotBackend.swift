@@ -4,8 +4,17 @@ final class ClaudeOneShotBackend: ClaudeBackend {
     private let model = "claude-sonnet-4-6"
 
     func review(text: String) async throws -> ReviewResult {
+        do {
+            return try await runOnce(text: text, useResume: true)
+        } catch ClaudeBackendError.processFailed(let msg) where msg.contains("No conversation found") {
+            ClaudeSession.sessionId = nil
+            return try await runOnce(text: text, useResume: false)
+        }
+    }
+
+    private func runOnce(text: String, useResume: Bool) async throws -> ReviewResult {
         ClaudeSession.ensureFreshDay()
-        let resumeId = ClaudeSession.sessionId
+        let resumeId = useResume ? ClaudeSession.sessionId : nil
 
         let prompt = SystemPrompt.render(text: text)
         let claudePath = try locateClaudeBinary()

@@ -23,8 +23,16 @@ cp "$BIN" "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
 cp "$ROOT/Resources/Info.plist" "$APP_BUNDLE/Contents/Info.plist"
 printf 'APPL????' > "$APP_BUNDLE/Contents/PkgInfo"
 
-echo "==> Ad-hoc signing"
-codesign --force --deep --sign - "$APP_BUNDLE"
+CERT_NAME="PromtSidecarDev"
+if security find-identity -v -p codesigning login.keychain-db 2>/dev/null | grep -q "$CERT_NAME"; then
+  echo "==> Signing with stable identity ($CERT_NAME)"
+  codesign --force --deep --sign "$CERT_NAME" "$APP_BUNDLE"
+else
+  echo "==> WARNING: stable cert '$CERT_NAME' not found, falling back to ad-hoc"
+  echo "    Run ./setup-cert.sh once to install it. Without it, AX permission"
+  echo "    will be revoked on every rebuild."
+  codesign --force --deep --sign - "$APP_BUNDLE"
+fi
 
 echo
 echo "Done."
