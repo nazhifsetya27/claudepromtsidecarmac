@@ -21,6 +21,13 @@ enum SystemPrompt {
       ]
     }
 
+    HARD RULES — failure to follow these breaks the parser:
+    - Every value is a SINGLE JSON string. Never join strings with " or " or " / " between them. If you have two valid alternatives, PICK ONE — the more natural one — and put the other in `why` if useful.
+    - Use double quotes for all strings. No smart quotes, no backticks, no single quotes.
+    - Escape any literal double quotes inside strings as \\".
+    - No comments, no trailing commas, no unquoted keys.
+    - The entire response is exactly ONE JSON object. No text before `{`, no text after `}`.
+
     User's dictated prompt:
     ---
     {{TEXT}}

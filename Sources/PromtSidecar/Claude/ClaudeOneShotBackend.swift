@@ -1,7 +1,7 @@
 import Foundation
 
 final class ClaudeOneShotBackend: ClaudeBackend {
-    private let model = "claude-sonnet-4-6"
+    private let model = "claude-haiku-4-5-20251001"
 
     func review(text: String) async throws -> ReviewResult {
         do {
@@ -49,14 +49,44 @@ final class ClaudeOneShotBackend: ClaudeBackend {
         }
 
         let cleaned = stripCodeFences(envelope.result.trimmingCharacters(in: .whitespacesAndNewlines))
-        guard let resultData = cleaned.data(using: .utf8) else {
+        let jsonCandidate = extractFirstJSONObject(cleaned) ?? cleaned
+        guard let resultData = jsonCandidate.data(using: .utf8) else {
             throw ClaudeBackendError.parseError("could not encode result as utf8")
         }
         do {
             return try JSONDecoder().decode(ReviewResult.self, from: resultData)
         } catch {
-            throw ClaudeBackendError.parseError("review JSON decode failed (\(error.localizedDescription)). Got: \(cleaned.prefix(200))")
+            let preview = jsonCandidate.count > 600 ? String(jsonCandidate.prefix(600)) + "…" : jsonCandidate
+            throw ClaudeBackendError.parseError("review JSON decode failed (\(error.localizedDescription)). Got: \(preview)")
         }
+    }
+
+    private func extractFirstJSONObject(_ s: String) -> String? {
+        guard let startIdx = s.firstIndex(of: "{") else { return nil }
+        var depth = 0
+        var inString = false
+        var escaped = false
+        var i = startIdx
+        while i < s.endIndex {
+            let c = s[i]
+            if escaped {
+                escaped = false
+            } else if inString {
+                if c == "\\" { escaped = true }
+                else if c == "\"" { inString = false }
+            } else {
+                if c == "\"" { inString = true }
+                else if c == "{" { depth += 1 }
+                else if c == "}" {
+                    depth -= 1
+                    if depth == 0 {
+                        return String(s[startIdx...i])
+                    }
+                }
+            }
+            i = s.index(after: i)
+        }
+        return nil
     }
 
     private func locateClaudeBinary() throws -> String {
